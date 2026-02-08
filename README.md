@@ -18,3 +18,16 @@ Aplikacja w Pythonie do analizy sekwencji DNA pod kątem występowania motywów 
 py -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
+
+## Uruchomienie (GUI)
+```bash
+python app.py
+
+## Testy
+python -m pytest -q
+
+
+## Przykład NCBI
+- Accession: `NC_000913.3` (E. coli K-12)
+- Motywy: `ATG, TATA, CGCG`
+- Uwaga: NCBI wymaga podania e-mail w zapytaniach (Entrez).
