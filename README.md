@@ -32,3 +32,7 @@ Aplikacja w Pythonie do analizy sekwencji DNA pod kątem występowania motywów 
 - Motywy: ATG, TATA, CGCG
 - Uwaga: NCBI wymaga podania e-mail w zapytaniach (Entrez).
 
+## Przykładowe dane
+- `data/my_seq1.fasta`
+- `data/my_seq2.fasta`
+
