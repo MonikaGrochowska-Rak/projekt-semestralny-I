@@ -24,10 +24,12 @@ pip install -r requirements.txt
 python app.py
 
 ## Testy
+```bash
 python -m pytest -q
 
 
 ## Przykład NCBI
+```bash
 - Accession: `NC_000913.3` (E. coli K-12)
 - Motywy: `ATG, TATA, CGCG`
 - Uwaga: NCBI wymaga podania e-mail w zapytaniach (Entrez).
