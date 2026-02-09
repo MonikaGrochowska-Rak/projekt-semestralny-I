@@ -61,3 +61,29 @@ def plot_binned_bar(binned: List[Dict], bin_size: int, out_path: str | Path, tit
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
     return out_path
+
+def export_interactive_html(hits: List[Dict], out_path: str | Path, title: str = "Motif positions") -> Path:
+    """
+    Zapisuje interaktywny wykres HTML (plotly): pozycje motywów na osi sekwencji.
+    """
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        import plotly.express as px
+    except Exception:
+        raise RuntimeError("Brak plotly. Zainstaluj: pip install plotly")
+
+    if not hits:
+        # pusty wykres
+        df = {"start_1based": [], "motif": []}
+    else:
+        df = {
+            "start_1based": [h["start_1based"] for h in hits],
+            "motif": [h["motif"] for h in hits],
+        }
+
+    fig = px.scatter(df, x="start_1based", y="motif", title=title)
+    fig.update_layout(xaxis_title="Position (1-based)", yaxis_title="Motif")
+    fig.write_html(str(out_path))
+    return out_path

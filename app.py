@@ -10,8 +10,13 @@ from tkinter import ttk, filedialog, messagebox
 from core.io import read_sequence_from_file, fetch_sequence_from_ncbi
 from core.motifs import find_multiple_motifs
 from core.stats import basic_stats, bin_hits, num_bins
-from core.viz import plot_binned_bar
-from core.export import export_occurrences_csv, export_binned_csv, export_summary_csv
+from core.viz import plot_binned_bar, export_interactive_html
+from core.export import (
+    export_occurrences_csv,
+    export_binned_csv,
+    export_summary_csv,
+    export_pdf_report,
+)
 
 
 def _open_file_default_app(path: Path) -> None:
@@ -29,11 +34,12 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("DNA Motif Analyzer — Extended (GUI)")
-        self.geometry("1050x720")
+        self.geometry("1050x740")
 
         # --- state ---
         self._last_out_dir: Path | None = None
         self._last_plot: Path | None = None
+        self._last_html: Path | None = None
         self._last_hits: list[dict] = []
         self._last_binned: list[dict] = []
         self._last_stats: dict = {}
@@ -58,10 +64,15 @@ class App(tk.Tk):
         src = ttk.LabelFrame(root, text="Źródło sekwencji", padding=10)
         src.pack(fill="x")
 
-        ttk.Radiobutton(src, text="Plik (FASTA/TXT)", variable=self.source, value="file",
-                        command=self._sync_source).grid(row=0, column=0, sticky="w")
-        ttk.Radiobutton(src, text="NCBI (nuccore)", variable=self.source, value="ncbi",
-                        command=self._sync_source).grid(row=0, column=1, sticky="w", padx=(12, 0))
+        ttk.Radiobutton(
+            src, text="Plik (FASTA/TXT)", variable=self.source, value="file",
+            command=self._sync_source
+        ).grid(row=0, column=0, sticky="w")
+
+        ttk.Radiobutton(
+            src, text="NCBI (nuccore)", variable=self.source, value="ncbi",
+            command=self._sync_source
+        ).grid(row=0, column=1, sticky="w", padx=(12, 0))
 
         ttk.Label(src, text="Plik:").grid(row=1, column=0, sticky="w", pady=(8, 0))
         self.file_entry = ttk.Entry(src, textvariable=self.file_path, width=70)
@@ -94,11 +105,17 @@ class App(tk.Tk):
         self.btn_analyze = ttk.Button(btns, text="Analyze", command=self._analyze_clicked)
         self.btn_analyze.pack(side="left", padx=4)
 
-        self.btn_export = ttk.Button(btns, text="Export CSV", command=self._export_clicked, state="disabled")
-        self.btn_export.pack(side="left", padx=4)
+        self.btn_export_csv = ttk.Button(btns, text="Export CSV", command=self._export_csv_clicked, state="disabled")
+        self.btn_export_csv.pack(side="left", padx=4)
+
+        self.btn_export_pdf = ttk.Button(btns, text="Export PDF", command=self._export_pdf_clicked, state="disabled")
+        self.btn_export_pdf.pack(side="left", padx=4)
 
         self.btn_open_plot = ttk.Button(btns, text="Open plot", command=self._open_plot_clicked, state="disabled")
         self.btn_open_plot.pack(side="left", padx=4)
+
+        self.btn_open_html = ttk.Button(btns, text="Open HTML", command=self._open_html_clicked, state="disabled")
+        self.btn_open_html.pack(side="left", padx=4)
 
         ttk.Button(btns, text="Clear", command=self._clear).pack(side="left", padx=4)
 
@@ -114,7 +131,7 @@ class App(tk.Tk):
         self.summary.configure(state="disabled")
 
         cols = ("motif", "start_1based", "end_1based")
-        self.tree = ttk.Treeview(out, columns=cols, show="headings", height=14)
+        self.tree = ttk.Treeview(out, columns=cols, show="headings", height=16)
         for c in cols:
             self.tree.heading(c, text=c)
             self.tree.column(c, width=160, anchor="center")
@@ -136,13 +153,16 @@ class App(tk.Tk):
 
     def _set_busy(self, busy: bool):
         self.btn_analyze.configure(state="disabled" if busy else "normal")
-        self.btn_export.configure(state="disabled" if busy or self._last_out_dir is None else "normal")
+        self.btn_export_csv.configure(state="disabled" if busy or self._last_out_dir is None else "normal")
+        self.btn_export_pdf.configure(state="disabled" if busy or self._last_out_dir is None else "normal")
         self.btn_open_plot.configure(state="disabled" if busy or self._last_plot is None else "normal")
+        self.btn_open_html.configure(state="disabled" if busy or self._last_html is None else "normal")
         self.status.set("Pracuję..." if busy else "Gotowe.")
 
     def _clear(self):
         self._last_out_dir = None
         self._last_plot = None
+        self._last_html = None
         self._last_hits = []
         self._last_binned = []
         self._last_stats = {}
@@ -155,16 +175,18 @@ class App(tk.Tk):
         self.summary.delete("1.0", "end")
         self.summary.configure(state="disabled")
 
-        self.btn_export.configure(state="disabled")
+        self.btn_export_csv.configure(state="disabled")
+        self.btn_export_pdf.configure(state="disabled")
         self.btn_open_plot.configure(state="disabled")
+        self.btn_open_html.configure(state="disabled")
         self.status.set("Wyczyszczono.")
 
     def _analyze_clicked(self):
-        # Walidacja pól
         motifs = [m.strip().upper() for m in self.motifs.get().split(",") if m.strip()]
         if not motifs:
             messagebox.showerror("Błąd", "Podaj co najmniej jeden motyw (np. ATG).")
             return
+
         try:
             bin_size = int(self.bin_size.get().strip())
             if bin_size <= 0:
@@ -173,7 +195,7 @@ class App(tk.Tk):
             messagebox.showerror("Błąd", "Bin size musi być liczbą całkowitą > 0.")
             return
 
-        # Start wątku (żeby okno się nie wieszało)
+        # wątek (żeby GUI się nie zawieszało)
         self._set_busy(True)
 
         def worker():
@@ -194,35 +216,43 @@ class App(tk.Tk):
                 stats = basic_stats(rec.sequence)
                 binned = bin_hits(hits, seq_len=int(stats["length"]), bin_size=bin_size)
 
-                # 3) zapis domyślny do outputs/gui/<id>_...
+                # 3) zapis domyślny do outputs/gui/<id>/
                 out_dir = Path("outputs") / "gui" / rec.id
                 out_dir.mkdir(parents=True, exist_ok=True)
 
                 plot_path = out_dir / "binned.png"
-                plot_binned_bar(binned, bin_size=bin_size, out_path=plot_path, title=f"{rec.id} (len={int(stats['length'])})")
+                html_path = out_dir / "interactive.html"
+
+                plot_binned_bar(
+                    binned, bin_size=bin_size, out_path=plot_path,
+                    title=f"{rec.id} (len={int(stats['length'])})"
+                )
+                export_interactive_html(hits, out_path=html_path, title=f"{rec.id}: Motif positions")
 
                 export_occurrences_csv(hits, out_dir / "occurrences.csv")
                 export_binned_csv(binned, out_dir / "binned.csv")
                 export_summary_csv(stats, out_dir / "summary.csv")
 
-                result = (rec, hits, stats, binned, out_dir, plot_path, motifs, bin_size)
+                result = (rec, hits, stats, binned, out_dir, plot_path, html_path, motifs, bin_size)
                 self.after(0, lambda: self._on_analysis_done(result))
+
             except Exception as e:
                 self.after(0, lambda: self._on_analysis_error(e))
 
         threading.Thread(target=worker, daemon=True).start()
 
     def _on_analysis_done(self, result):
-        rec, hits, stats, binned, out_dir, plot_path, motifs, bin_size = result
+        rec, hits, stats, binned, out_dir, plot_path, html_path, motifs, bin_size = result
 
         self._last_out_dir = out_dir
         self._last_plot = plot_path
+        self._last_html = html_path
         self._last_hits = hits
         self._last_stats = stats
         self._last_binned = binned
         self._last_rec_id = rec.id
 
-        # Summary
+        # counts per motif
         counts = {}
         for h in hits:
             counts[h["motif"]] = counts.get(h["motif"], 0) + 1
@@ -248,7 +278,8 @@ class App(tk.Tk):
         lines += [
             "",
             f"Zapisano do: {out_dir}",
-            f"Wykres: {plot_path}",
+            f"Wykres PNG: {plot_path}",
+            f"HTML: {html_path}",
         ]
 
         self.summary.configure(state="normal")
@@ -256,7 +287,7 @@ class App(tk.Tk):
         self.summary.insert("end", "\n".join(lines))
         self.summary.configure(state="disabled")
 
-        # Table (nie pokazuj wszystkiego dla ogromnych danych)
+        # Table: limit rows for performance on huge sequences
         for item in self.tree.get_children():
             self.tree.delete(item)
 
@@ -273,15 +304,17 @@ class App(tk.Tk):
                 f"Pełne dane są w CSV: {out_dir / 'occurrences.csv'}"
             )
 
-        self.btn_export.configure(state="normal")
+        self.btn_export_csv.configure(state="normal")
+        self.btn_export_pdf.configure(state="normal")
         self.btn_open_plot.configure(state="normal")
+        self.btn_open_html.configure(state="normal")
         self._set_busy(False)
 
     def _on_analysis_error(self, e: Exception):
         self._set_busy(False)
         messagebox.showerror("Błąd", str(e))
 
-    def _export_clicked(self):
+    def _export_csv_clicked(self):
         if self._last_out_dir is None:
             return
 
@@ -298,11 +331,40 @@ class App(tk.Tk):
 
         messagebox.showinfo("Zapisano", f"CSV zapisane do:\n{target_dir}")
 
+    def _export_pdf_clicked(self):
+        if self._last_out_dir is None:
+            return
+
+        out_pdf = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF", "*.pdf")])
+        if not out_pdf:
+            return
+
+        counts = {}
+        for h in self._last_hits:
+            counts[h["motif"]] = counts.get(h["motif"], 0) + 1
+        extra = ["Motif counts:"] + [f"- {m}: {counts[m]}" for m in sorted(counts.keys())] if counts else ["Motif counts: brak"]
+
+        export_pdf_report(
+            out_pdf,
+            title=f"DNA Motif Analyzer — {self._last_rec_id}",
+            stats=self._last_stats,
+            plot_png=self._last_plot,
+            extra_lines=extra,
+        )
+
+        messagebox.showinfo("Zapisano", f"PDF zapisany do:\n{out_pdf}")
+
     def _open_plot_clicked(self):
         if self._last_plot is None:
             return
         _open_file_default_app(self._last_plot)
 
+    def _open_html_clicked(self):
+        if self._last_html is None:
+            return
+        _open_file_default_app(self._last_html)
+
 
 if __name__ == "__main__":
     App().mainloop()
+

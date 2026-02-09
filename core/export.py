@@ -46,3 +46,50 @@ def export_summary_csv(stats: Dict[str, float], out_path: str | Path) -> Path:
         w.writerow(stats)
 
     return out_path
+
+from typing import Optional, List
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+
+
+def export_pdf_report(
+    out_pdf: str | Path,
+    title: str,
+    stats: Dict[str, float],
+    plot_png: Optional[str | Path] = None,
+    extra_lines: Optional[List[str]] = None,
+) -> Path:
+    out_pdf = Path(out_pdf)
+    out_pdf.parent.mkdir(parents=True, exist_ok=True)
+
+    lines = [
+        title,
+        "",
+        f"length: {int(stats.get('length', 0))}",
+        f"GC_content: {stats.get('GC_content', 0):.4f}",
+        f"AT_content: {stats.get('AT_content', 0):.4f}",
+        "",
+        f"A: {int(stats.get('A', 0))}  C: {int(stats.get('C', 0))}  G: {int(stats.get('G', 0))}  T: {int(stats.get('T', 0))}  N: {int(stats.get('N', 0))}",
+    ]
+    if extra_lines:
+        lines += [""] + extra_lines
+
+    with PdfPages(out_pdf) as pdf:
+        
+        fig, ax = plt.subplots(figsize=(8.27, 11.69))
+        ax.axis("off")
+        ax.text(0.05, 0.95, "\n".join(lines), ha="left", va="top", fontsize=12)
+        pdf.savefig(fig)
+        plt.close(fig)
+
+        if plot_png:
+            p = Path(plot_png)
+            if p.exists():
+                img = plt.imread(str(p))
+                fig2, ax2 = plt.subplots(figsize=(11.69, 8.27))
+                ax2.axis("off")
+                ax2.imshow(img)
+                pdf.savefig(fig2)
+                plt.close(fig2)
+
+    return out_pdf
