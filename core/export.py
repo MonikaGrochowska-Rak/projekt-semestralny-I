@@ -93,3 +93,16 @@ def export_pdf_report(
                 plt.close(fig2)
 
     return out_pdf
+
+def export_compare_csv(rows: List[Dict], out_path: str | Path) -> Path:
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    fieldnames = ["motif", "count_seq1", "count_seq2", "diff_seq2_minus_seq1"]
+    with out_path.open("w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=fieldnames)
+        w.writeheader()
+        for r in rows:
+            w.writerow({k: r.get(k) for k in fieldnames})
+
+    return out_path
