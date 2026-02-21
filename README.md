@@ -22,9 +22,13 @@ Obsługuje wczytanie sekwencji z pliku FASTA/TXT lub pobranie z NCBI (GenBank), 
 ```bat
 py -m venv .venv
 .venv\Scripts\activate
-py -m pip install -r requirements.txt```
+py -m pip install -r requirements.txt
+```
+
 Uruchomienie (GUI)
+```bat
 py app.py
+```
 Testy
 py -m pytest
 Przykład NCBI
