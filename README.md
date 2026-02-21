@@ -23,6 +23,8 @@ Obsługuje wczytanie sekwencji z pliku FASTA/TXT lub pobranie z NCBI (GenBank), 
 py -m venv .venv
 .venv\Scripts\activate
 py -m pip install -r requirements.txt
+
+Uruchamiaj program i testy po aktywacji .venv (w CMD powinno być (.venv)).
 ```
 
 ## Uruchomienie (GUI)
