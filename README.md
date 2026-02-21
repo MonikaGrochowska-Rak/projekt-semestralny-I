@@ -15,17 +15,18 @@ Aplikacja w Pythonie do analizy sekwencji DNA pod kątem występowania motywów 
 
 ## Instalacja (Windows)
 
-    py -m venv .venv
-    .venv\Scripts\activate
-    pip install -r requirements.txt
+```bat
+py -m venv .venv
+.venv\Scripts\activate
+py -m pip install -r requirements.txt
 
 ## Uruchomienie (GUI)
 
-    python app.py
+py app.py
 
 ## Testy
 
-    python -m pytest -q
+py -m pytest
 
 ## Przykład NCBI
 - Accession: NC_000913.3 (E. coli K-12)
