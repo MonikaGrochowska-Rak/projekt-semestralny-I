@@ -35,11 +35,11 @@ py -m pip install -r requirements.txt
 
 ## Uruchomienie (GUI)
 
-    python app.py
+py app.py
 
 ## Testy
 
-    python -m pytest -q
+py -m pytest
 
 ## Przykład NCBI
 - Accession: NC_000913.3 (E. coli K-12)
