@@ -25,15 +25,15 @@ py -m venv .venv
 py -m pip install -r requirements.txt
 ```
 
-Uruchomienie (GUI)
+## Uruchomienie (GUI)
 ```bat
 py app.py
 ```
-Testy
+## Testy
 ```bat
 py -m pytest
 ```
-Przykład NCBI
+## Przykład NCBI
 ```bat
 Accession: NC_000913.3 (E. coli K-12)
 
@@ -41,13 +41,13 @@ Motywy: ATG, TATA, CGCG
 
 Uwaga: NCBI wymaga podania e-mail w zapytaniach (Entrez) – ustaw w aplikacji zgodnie z komunikatem w GUI/konfiguracji.
 ```
-Przykładowe dane
+## Przykładowe dane
 ```bat
 data/my_seq1.fasta
 
 data/my_seq2.fasta
 ```
-Struktura projektu (skrót)
+## Struktura projektu (skrót)
 ```bat
 core/ – logika analizy (motywy, statystyki, porównanie)
 
