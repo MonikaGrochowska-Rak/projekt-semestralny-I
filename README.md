@@ -30,23 +30,25 @@ Uruchomienie (GUI)
 py app.py
 ```
 Testy
+```bat
 py -m pytest
+```
 Przykład NCBI
-
+```bat
 Accession: NC_000913.3 (E. coli K-12)
 
 Motywy: ATG, TATA, CGCG
 
 Uwaga: NCBI wymaga podania e-mail w zapytaniach (Entrez) – ustaw w aplikacji zgodnie z komunikatem w GUI/konfiguracji.
-
+```
 Przykładowe dane
-
+```bat
 data/my_seq1.fasta
 
 data/my_seq2.fasta
-
+```
 Struktura projektu (skrót)
-
+```bat
 core/ – logika analizy (motywy, statystyki, porównanie)
 
 tests/ – testy pytest
@@ -56,3 +58,4 @@ data/ – przykładowe dane
 outputs/ – wygenerowane wyniki
 
 docs/ – dokumentacja/raporty (jeśli dotyczy)
+```
