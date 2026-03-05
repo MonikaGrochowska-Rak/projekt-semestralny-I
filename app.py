@@ -10,7 +10,7 @@ from tkinter import ttk, filedialog, messagebox
 from core.io import read_sequence_from_file, fetch_sequence_from_ncbi
 from core.motifs import find_multiple_motifs
 from core.stats import basic_stats, bin_hits, num_bins
-from core.viz import plot_binned_bar, export_interactive_html
+from core.viz import plot_binned_bar, export_interactive_html, plot_motif_heatmap_png
 from core.export import (
     export_occurrences_csv,
     export_binned_csv,
@@ -40,6 +40,7 @@ class App(tk.Tk):
         self._last_out_dir: Path | None = None
         self._last_plot: Path | None = None
         self._last_html: Path | None = None
+        self._last_heatmap: Path | None = None
         self._last_hits: list[dict] = []
         self._last_binned: list[dict] = []
         self._last_stats: dict = {}
@@ -117,6 +118,9 @@ class App(tk.Tk):
         self.btn_open_html = ttk.Button(btns, text="Open HTML", command=self._open_html_clicked, state="disabled")
         self.btn_open_html.pack(side="left", padx=4)
 
+        self.btn_open_heatmap = ttk.Button(btns, text="Open heatmap", command=self._open_heatmap_clicked, state="disabled")
+        self.btn_open_heatmap.pack(side="left", padx=4)
+
         ttk.Button(btns, text="Clear", command=self._clear).pack(side="left", padx=4)
 
         self.status = tk.StringVar(value="Gotowe.")
@@ -157,12 +161,14 @@ class App(tk.Tk):
         self.btn_export_pdf.configure(state="disabled" if busy or self._last_out_dir is None else "normal")
         self.btn_open_plot.configure(state="disabled" if busy or self._last_plot is None else "normal")
         self.btn_open_html.configure(state="disabled" if busy or self._last_html is None else "normal")
+        self.btn_open_heatmap.configure(state="disabled" if busy or self._last_heatmap is None else "normal")
         self.status.set("Pracuję..." if busy else "Gotowe.")
 
     def _clear(self):
         self._last_out_dir = None
         self._last_plot = None
         self._last_html = None
+        self._last_heatmap = None
         self._last_hits = []
         self._last_binned = []
         self._last_stats = {}
@@ -179,6 +185,7 @@ class App(tk.Tk):
         self.btn_export_pdf.configure(state="disabled")
         self.btn_open_plot.configure(state="disabled")
         self.btn_open_html.configure(state="disabled")
+        self.btn_open_heatmap.configure(state="disabled")
         self.status.set("Wyczyszczono.")
 
     def _analyze_clicked(self):
@@ -222,6 +229,7 @@ class App(tk.Tk):
 
                 plot_path = out_dir / "binned.png"
                 html_path = out_dir / "interactive.html"
+                heatmap_path = out_dir / "heatmap.png"
 
                 plot_binned_bar(
                     binned, bin_size=bin_size, out_path=plot_path,
@@ -229,11 +237,20 @@ class App(tk.Tk):
                 )
                 export_interactive_html(hits, out_path=html_path, title=f"{rec.id}: Motif positions")
 
+                plot_motif_heatmap_png(
+                    hits=hits,
+                    motifs=motifs,
+                    seq_len=int(stats["length"]),
+                    bin_size=bin_size,
+                    out_path=heatmap_path,
+                    title=f"Heatmap: {rec.id} (bin={bin_size})",
+                )
+
                 export_occurrences_csv(hits, out_dir / "occurrences.csv")
                 export_binned_csv(binned, out_dir / "binned.csv")
                 export_summary_csv(stats, out_dir / "summary.csv")
 
-                result = (rec, hits, stats, binned, out_dir, plot_path, html_path, motifs, bin_size)
+                result = (rec, hits, stats, binned, out_dir, plot_path, html_path, heatmap_path, motifs, bin_size)
                 self.after(0, lambda: self._on_analysis_done(result))
 
             except Exception as e:
@@ -242,11 +259,12 @@ class App(tk.Tk):
         threading.Thread(target=worker, daemon=True).start()
 
     def _on_analysis_done(self, result):
-        rec, hits, stats, binned, out_dir, plot_path, html_path, motifs, bin_size = result
+        rec, hits, stats, binned, out_dir, plot_path, html_path, heatmap_path, motifs, bin_size = result
 
         self._last_out_dir = out_dir
         self._last_plot = plot_path
         self._last_html = html_path
+        self._last_heatmap = heatmap_path
         self._last_hits = hits
         self._last_stats = stats
         self._last_binned = binned
@@ -308,6 +326,7 @@ class App(tk.Tk):
         self.btn_export_pdf.configure(state="normal")
         self.btn_open_plot.configure(state="normal")
         self.btn_open_html.configure(state="normal")
+        self.btn_open_heatmap.configure(state="normal")
         self._set_busy(False)
 
     def _on_analysis_error(self, e: Exception):
@@ -364,6 +383,10 @@ class App(tk.Tk):
             return
         _open_file_default_app(self._last_html)
 
+    def _open_heatmap_clicked(self):
+        if self._last_heatmap is None:
+            return
+        _open_file_default_app(self._last_heatmap)
 
 if __name__ == "__main__":
     App().mainloop()
