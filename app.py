@@ -237,7 +237,7 @@ class App(tk.Tk):
                 self.after(0, lambda: self._on_analysis_done(result))
 
             except Exception as e:
-                self.after(0, lambda: self._on_analysis_error(e))
+                self.after(0, lambda err=e: self._on_analysis_error(err))
 
         threading.Thread(target=worker, daemon=True).start()
 
