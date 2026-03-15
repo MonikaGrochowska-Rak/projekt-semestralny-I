@@ -53,6 +53,8 @@ class App(tk.Tk):
         self.email = tk.StringVar(value="")
         self.motifs = tk.StringVar(value="ATG, TATA, CGCG")
         self.bin_size = tk.StringVar(value="200")
+        self.both_strands = tk.BooleanVar(value=True)
+
 
         self._build_ui()
         self._sync_source()
@@ -102,6 +104,14 @@ class App(tk.Tk):
 
         btns = ttk.Frame(params)
         btns.grid(row=1, column=0, columnspan=4, sticky="w", pady=(10, 0))
+        btns = ttk.Frame(params)
+        btns.grid(row=1, column=0, columnspan=4, sticky="w", pady=(10, 0))
+
+        ttk.Checkbutton(
+          btns,
+          text="Szukaj na obu niciach (+ i -)",
+          variable=self.both_strands
+        ).pack(side="left", padx=4)
 
         self.btn_analyze = ttk.Button(btns, text="Analyze", command=self._analyze_clicked)
         self.btn_analyze.pack(side="left", padx=4)
@@ -134,7 +144,7 @@ class App(tk.Tk):
         self.summary.pack(fill="x")
         self.summary.configure(state="disabled")
 
-        cols = ("motif", "start_1based", "end_1based")
+        cols = ("motif", "strand", "start_1based", "end_1based")
         self.tree = ttk.Treeview(out, columns=cols, show="headings", height=16)
         for c in cols:
             self.tree.heading(c, text=c)
@@ -219,7 +229,12 @@ class App(tk.Tk):
                     rec = fetch_sequence_from_ncbi(acc, em)
 
                 # 2) analiza
-                hits = find_multiple_motifs(rec.sequence, motifs, allow_overlaps=True)
+                hits = find_multiple_motifs(
+                    rec.sequence,
+                    motifs,
+                    allow_overlaps=True,
+                    both_strands=self.both_strands.get(),
+                )
                 stats = basic_stats(rec.sequence)
                 binned = bin_hits(hits, seq_len=int(stats["length"]), bin_size=bin_size)
 
@@ -312,7 +327,7 @@ class App(tk.Tk):
         max_rows = 2000
         shown = hits[:max_rows]
         for h in shown:
-            self.tree.insert("", "end", values=(h["motif"], h["start_1based"], h["end_1based"]))
+            self.tree.insert("", "end", values=(h["motif"], h.get("strand", "+"), h["start_1based"], h["end_1based"]))
 
         if len(hits) > max_rows:
             messagebox.showinfo(

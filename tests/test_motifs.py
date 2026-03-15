@@ -26,3 +26,18 @@ def test_find_multiple_motifs_sorted():
 
     motifs = [h["motif"] for h in hits]
     assert "ATG" in motifs and "TATA" in motifs and "CGCG" in motifs
+
+from core.motifs import find_multiple_motifs
+
+def test_both_strands_palindrome_sets_both():
+    # TATA jest palindromem (reverse complement = TATA)
+    seq = "AAATATAGGG"
+    hits = find_multiple_motifs(seq, ["TATA"], allow_overlaps=True, both_strands=True)
+    assert len(hits) >= 1
+    assert all(h.get("strand") == "both" for h in hits)
+
+def test_both_strands_finds_reverse_complement_as_minus():
+    # RC(ATG)=CAT, więc jeśli w sekwencji jest CAT, to ATG powinno pojawić się na nici '-'
+    seq = "AAACATGGG"
+    hits = find_multiple_motifs(seq, ["ATG"], allow_overlaps=True, both_strands=True)
+    assert any(h.get("strand") == "-" for h in hits), "Powinno znaleźć trafienie na nici '-'"
