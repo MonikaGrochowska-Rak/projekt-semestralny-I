@@ -1,0 +1,10 @@
+bin_index,bin_start_1based,bin_end_1based,motif,count
+0,1,20,ATG,3
+0,1,20,CGCG,1
+0,1,20,TATA,2
+1,21,40,ATG,2
+1,21,40,CGCG,1
+1,21,40,TATA,2
+2,41,56,ATG,2
+2,41,56,CGCG,1
+2,41,56,TATA,1
